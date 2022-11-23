@@ -1,4 +1,5 @@
-from random import randint
+from random import randint # для получения случайных координат
+
 
 class Dot:
 # Класс "Точка" содержит координаты "х" и "у"
@@ -35,6 +36,7 @@ class Ship:
         self.len_ship = len_ship # длина коробля
         self.orient_ship = orient_ship # ориентация корабля в пространстве поля, принимает значение 0 - ось Х или 1 - ось У
         self.health = len_ship # здоровье коробля - его длина
+
     @property
     def dots(self): #метод возвращающий список клеток корабля
         ship_dots = [] #Список точек кораблей
@@ -49,6 +51,7 @@ class Ship:
                 ship_y += i #то шагаю по координатам У
 
             ship_dots.append(Dot(ship_x, ship_y)) #Добавляю полученную координату в список точек корабля
+
 
         return ship_dots #Возвращаю список точек
 
@@ -152,7 +155,7 @@ class Player:
     def move(self):#метод осуществляет ход
         while True:
             try: # отслеживаем исключения при выстреле
-                target = self.ask()# запрашиваем у игрока выстрел
+                target = self.ask()# запрашиваем у игрока координаты выстрела
                 repeat = self.enemy.shot(target) #нужен ли повторный выстрел, в случае повреждения корабля
                 return repeat
             except BoardException as e:
@@ -172,9 +175,8 @@ class User(Player):
     def ask(self):
         while True:
             cords = input("Ваш ход: ").split()
-
             if len(cords) != 2:
-                print(" Введите 2 координаты! ")
+                print(" Введите 2 координаты через пробел! ")
                 continue
 
             x, y = cords
@@ -192,7 +194,11 @@ class Game:
     # Основной класс игры
     def __init__(self, size=6):
         self.size = size # размер доски
-        pl = self.random_board() #доска пользователя, случайная
+        # возможность ручного ввода координат корабля
+        if input("Хотите разместить корабли вручную? 'Y' - Да, 'N' - Нет: ") == 'y':
+            pl = self.manual_board()  # доска пользователя, вручную
+        else:
+            pl = self.random_board() #доска пользователя, случайная
         co = self.random_board() #доска компьютера случайная
         co.hid = True
 
@@ -205,7 +211,13 @@ class Game:
             board = self.random_place()
         return board
 
-    def random_place(self):
+    def manual_board(self):
+        board = None
+        while board is None:
+            board = self.manual_place()
+        return board
+
+    def random_place(self): # Размещение кораблей в случайном порядке
         lens = [3, 2, 2, 1, 1, 1, 1]
         board = Board(size=self.size)
         attempts = 0
@@ -220,6 +232,43 @@ class Game:
                     break
                 except BoardWrongShipException:
                     pass
+        board.begin()
+        return board
+
+    def ask(self, l): # метод запроса и проверки координат начальной точки корабля, при ручном вводе
+        self.l = l
+        while True:
+            cords = input(f" Введите координаты носа корабля, размером - {l}, через пробел: ").split()
+            if len(cords) != 2:
+                print(" Введите 2 координаты через пробел! ")
+                continue
+
+            x, y = cords
+
+            if not (x.isdigit()) or not (y.isdigit()):
+                print(" Введите числа! ")
+                continue
+
+            x, y = int(x), int(y)
+
+            return Dot(x - 1, y - 1)
+    def manual_place(self): # Размещение кораблей вручную пользователем
+        lens = [3, 2, 2, 1, 1, 1, 1]
+        board = Board(size=self.size)
+        for l in lens:
+            keel_sheep1 = self.ask(l)
+            if l == 1:
+                orient_sheep = '0'
+            else:
+                orient_sheep = input("Расположение корабля: 0 - вертикальное, 1 - горизонтальное")
+                if not (orient_sheep.isdigit()):
+                    print(" Введите число! ")
+                    continue
+            ship = Ship(keel_sheep1, l, int(orient_sheep))
+            try:
+                board.add_ship(ship)
+            except BoardWrongShipException:
+                pass
         board.begin()
         return board
 
@@ -267,6 +316,7 @@ class Game:
     def start(self):
         self.greet()
         self.loop()
+
 
 
 g = Game()
